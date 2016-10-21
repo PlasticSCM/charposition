@@ -1,22 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.IO;
 using System.Windows.Forms;
 
 namespace charposition
 {
     static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+
+            string text = 
+@"class Socket
+{
+   void Connect(string server)
+   {
+      SocketLibrary.Connect(mSocket, server);
+   }
+
+   void Disconnect()
+   {
+      SocketLibrary.Disconnect(mSocket);
+   }
+}";
+
+            string title = "Sample code";
+
+            if (args.Length > 0)
+            {
+                text = File.ReadAllText(args[0]);
+                title = args[0];
+            }
+
+            Application.Run(new Form1(title, text));
         }
     }
 }
