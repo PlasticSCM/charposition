@@ -65,52 +65,6 @@ namespace charposition
             return new Size(maxCols, lines);
         }
 
-        void RenderLineAndColumnNumbers(
-            Graphics g,
-            int lines,
-            int columns,
-            int x_space,
-            int x_initialMargin,
-            int y_space,
-            int y_initialMargin)
-        {
-            Font numberFont = new Font("Consolas", 10.0f);
-
-            var brush = new SolidBrush(Color.Gray);
-
-            int x = x_initialMargin;
-            int y = 10;
-
-            for (int i = 0; i < columns; ++i)
-            {
-                Size numberTextSize = TextRenderer.MeasureText(i.ToString(), numberFont);
-
-                g.DrawString(i.ToString(), numberFont, brush,
-                    new PointF(
-                        x + x_space / 2 - (numberTextSize.Width / 2),
-                        y)
-                );
-
-                x += x_space;
-            }
-
-            x = 5;
-            y = y_initialMargin;
-
-            for (int i = 0; i < lines; ++i)
-            {
-                Size numberTextSize = TextRenderer.MeasureText(i.ToString(), numberFont);
-
-                g.DrawString(i.ToString(), numberFont, brush,
-                    new PointF(
-                        x,
-                        y + y_space / 2 - (numberTextSize.Height / 2))
-                );
-
-                y += y_space;
-            }
-        }
-
         Bitmap Draw(string text)
         {
             Size maxTextSize = GetTextSizeInLinesAndCols(text);
@@ -118,15 +72,15 @@ namespace charposition
             Font codeFont = new Font("Consolas", 20.0f);
             Size codeTextSize = TextRenderer.MeasureText("Z", codeFont);
 
-            int x_space = codeTextSize.Width + 2;
-            int y_space = codeTextSize.Height + 2;
+            int xSpace = codeTextSize.Width + 2;
+            int ySpace = codeTextSize.Height + 2;
 
-            int x_initialMargin = x_space;
-            int y_initialMargin = y_space;
+            int xInitialMargin = xSpace;
+            int yInitialMargin = ySpace;
 
             var bitmap = new Bitmap(
-                maxTextSize.Width * x_space + x_initialMargin,
-                maxTextSize.Height * y_space + y_initialMargin,
+                maxTextSize.Width * xSpace + xInitialMargin,
+                maxTextSize.Height * ySpace + yInitialMargin,
                 PixelFormat.Format32bppArgb);
 
             var g = Graphics.FromImage(bitmap);
@@ -134,9 +88,9 @@ namespace charposition
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
 
-            RenderLineAndColumnNumbers(
-                g, maxTextSize.Height, maxTextSize.Width,
-                x_space, x_initialMargin, y_space, y_initialMargin);
+            RenderNumbers numbers = new RenderNumbers();
+            numbers.RenderColumns(g, maxTextSize.Width, xSpace, xInitialMargin);
+            numbers.RenderLines(g, maxTextSize.Height, ySpace, yInitialMargin);
 
             Font numberFont = new Font("Consolas", 6.0f);
             Font eolFont = new Font("Consolas", 15.0f);
@@ -150,8 +104,8 @@ namespace charposition
 
             Size numberTextSize = TextRenderer.MeasureText("Z", numberFont);
 
-            int x = x_initialMargin;
-            int y = y_initialMargin;
+            int x = xInitialMargin;
+            int y = yInitialMargin;
 
             for (int pos = 0; pos < text.Length; ++pos)
             {
@@ -176,25 +130,78 @@ namespace charposition
 
                 g.DrawString(charToDraw, currentFont, currentBrush, new PointF(x, y));
 
-                g.DrawRectangle(linePen, new Rectangle(x + 1, y + 1, codeTextSize.Width - 1, codeTextSize.Height - 1));
+                g.DrawRectangle(linePen, new Rectangle(
+                    x + 1, y + 1, codeTextSize.Width - 1, codeTextSize.Height - 1));
 
                 string posString = pos.ToString();
 
                 g.DrawString(posString, numberFont, eolBrush,
                     new PointF(
-                        x + x_space - TextRenderer.MeasureText(posString, numberFont).Width,
+                        x + xSpace - TextRenderer.MeasureText(posString, numberFont).Width,
                         y + codeTextSize.Height-numberTextSize.Height));
 
-                x += x_space;
+                x += xSpace;
 
                 if (text[pos] == '\n')
                 {
-                    y += y_space;
-                    x = x_initialMargin;
+                    y += ySpace;
+                    x = xInitialMargin;
                 }
             }
 
             return bitmap;
+        }
+
+        class RenderNumbers
+        {
+            internal void RenderColumns(
+                Graphics g,
+                int columns,
+                int x_space,
+                int x_initialMargin)
+            {
+                int x = x_initialMargin;
+                int y = 10;
+
+                for (int i = 0; i < columns; ++i)
+                {
+                    Size numberTextSize = TextRenderer.MeasureText(i.ToString(), mNumberFont);
+
+                    g.DrawString(i.ToString(), mNumberFont, mGrayBrush,
+                        new PointF(
+                            x + x_space / 2 - (numberTextSize.Width / 2),
+                            y)
+                    );
+
+                    x += x_space;
+                }
+            }
+
+            internal void RenderLines(
+                Graphics g,
+                int lines,
+                int y_space,
+                int y_initialMargin)
+            {
+                int x = 5;
+                int y = y_initialMargin;
+
+                for (int i = 0; i < lines; ++i)
+                {
+                    Size numberTextSize = TextRenderer.MeasureText(i.ToString(), mNumberFont);
+
+                    g.DrawString(i.ToString(), mNumberFont, mGrayBrush,
+                        new PointF(
+                            x,
+                            y + y_space / 2 - (numberTextSize.Height / 2))
+                    );
+
+                    y += y_space;
+                }
+            }
+
+            Font mNumberFont = new Font("Consolas", 10.0f);
+            Brush mGrayBrush = new SolidBrush(Color.Gray);
         }
     }
 }
