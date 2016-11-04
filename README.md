@@ -6,3 +6,10 @@ Small Windows app that renders a source file and shows the lines, columns and th
 This app is useful to understand how SemanticMerge/Plastic SCM external parsers work.
 
 While learning how to develop external parsers you probably create a parser by hand. Then you need to "count" the chars where declarations (methods, namespaces, classes, includes) start and end. This is painful. This app helps you in the process.
+
+## How to use it
+If you run the app without params, it displays a sample file.
+
+Most likely what you want to do is to ass the file you want to display as argument:
+
+charposition.exe Program.cs
