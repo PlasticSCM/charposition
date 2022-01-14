@@ -10,6 +10,6 @@ While learning how to develop external parsers you probably create a parser by h
 ## How to use it
 If you run the app without params, it displays a sample file.
 
-Most likely what you want to do is to ass the file you want to display as argument:
+Most likely what you want to do is to pass the file you want to display as argument:
 
 charposition.exe Program.cs
