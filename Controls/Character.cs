@@ -5,31 +5,50 @@ namespace charposition.Controls;
 
 public class Character : Canvas
 {
-    public Character(int totalChars, char character)
+    public int Line { get; set; }
+    public int Column { get; set; }
+
+    public int CharIndex
     {
-        string display = DisplayCharacter(character);
-        TextBlock label = new()
+        set
         {
-            Text = display,
-            Foreground = display != character.ToString() ? Brushes.Gray : Brushes.Black,
+            this.Index.Text = value.ToString();
+        }
+    }
+    public char CharCode
+    {
+        set
+        {
+            string display = DisplayCharacter(value);
+            this.Label.Text = display;
+            this.Label.Foreground = display != value.ToString() ? Brushes.Gray : Brushes.Black;
+        }
+    }
+
+    private TextBlock Label { get; }
+    private TextBlock Index { get; }
+
+    public Character()
+    {
+        this.Label = new()
+        {
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             VerticalAlignment = System.Windows.VerticalAlignment.Top,
         };
-        this.Children.Add(label);
-        Canvas.SetTop(label, 2);
-        Canvas.SetLeft(label, 8);
+        this.Children.Add(this.Label);
+        Canvas.SetTop(this.Label, 2);
+        Canvas.SetLeft(this.Label, 8);
 
-        TextBlock index = new()
+        this.Index = new()
         {
-            Text = totalChars.ToString(),
             Foreground = Brushes.Gray,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             VerticalAlignment = System.Windows.VerticalAlignment.Bottom,
             FontSize = 10
         };
-        this.Children.Add(index);
-        Canvas.SetBottom(index, 2);
-        Canvas.SetRight(index, 2);
+        this.Children.Add(this.Index);
+        Canvas.SetBottom(this.Index, 2);
+        Canvas.SetRight(this.Index, 2);
     }
 
     private static string DisplayCharacter(char character) =>

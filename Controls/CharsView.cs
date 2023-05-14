@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -101,25 +102,39 @@ public class CharsView : UserControl
     {
         int totalChars = 0;
         int lineNo = 0;
-        foreach (var line in this.LineChars)
+        foreach (char[] chars in this.LineChars)
         {
-            if (line is not char[] chars)
-            {
-                continue;
-            }
-
             for (int i = 0; i < chars.Length; i++)
             {
-                var character = new Character(totalChars++, chars[i])
+                if (this.Characters.Count <= totalChars)
                 {
-                    Width = CellWidth,
-                    Height = CellHeight
-                };
-                this.Canvas.Children.Add(character);
+                    var @char = new Character()
+                    {
+                        Width = CellWidth,
+                        Height = CellHeight,
+                        Background = Brushes.Transparent,
+                    };
+                    this.Canvas.Children.Add(@char);
+                    this.Characters.Add(@char);
+                }
+
+                var character = this.Characters[totalChars];
+                character.CharIndex = totalChars;
+                character.CharCode = chars[i];
+                character.Line = lineNo;
+                character.Column = i;
                 Canvas.SetTop(character, CellWidth + (lineNo * CellHeight));
                 Canvas.SetLeft(character, (i + 1) * CellWidth);
+
+                totalChars++;
             }
             lineNo++;
+        }
+
+        while (this.Characters.Count > totalChars)
+        {
+            this.Canvas.Children.Remove(this.Characters[^1]);
+            this.Characters.RemoveAt(this.Characters.Count - 1);
         }
     }
 
