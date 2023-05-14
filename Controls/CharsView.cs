@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Runtime.InteropServices;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -19,6 +20,7 @@ public class CharsView : UserControl
 
     private readonly Brush LineBrush = Brushes.Gray;
     private readonly Brush LabelBrush = Brushes.Gray;
+    private readonly Brush HighlightBrush = Brushes.PaleGreen;
 
     public int LineCount
     {
@@ -54,6 +56,8 @@ public class CharsView : UserControl
 
     public CharsView()
     {
+        this.Background = Brushes.Transparent;
+
         this.Canvas = new Canvas();
         this.Content = this.Canvas;
 
@@ -83,6 +87,58 @@ public class CharsView : UserControl
             Y1 = CellWidth
         };
         this.Canvas.Children.Add(this.VerticalLine);
+
+        this.HighlightColumn = new()
+        {
+            Width = CellWidth,
+            Fill = HighlightBrush
+        };
+        this.HighlightLine = new()
+        {
+            Height = CellHeight,
+            Fill = HighlightBrush
+        };
+
+        this.HighlightLine.SetBinding(WidthProperty,
+                new Binding { Path = new PropertyPath(ActualWidthProperty), Source = this });
+        this.HighlightColumn.SetBinding(HeightProperty,
+            new Binding { Path = new PropertyPath(ActualHeightProperty), Source = this });
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        var mouseOverChar = this.Characters.FirstOrDefault(c => c.IsMouseOver);
+        this.HighlightCharacter(mouseOverChar);
+    }
+
+    private void HighlightCharacter(Character? character)
+    {
+        if (this.HighlightedCharacter != null)
+        {
+            this.HighlightedCharacter.Background = Brushes.Transparent;
+            this.LineNoLabels[this.HighlightedCharacter.Line].Foreground = LabelBrush;
+            this.ColumnLabels[this.HighlightedCharacter.Column].Foreground = LabelBrush;
+        }
+        this.HighlightedCharacter = character;
+        if (character == null)
+        {
+            this.Canvas.Children.Remove(this.HighlightColumn);
+            this.Canvas.Children.Remove(this.HighlightLine);
+            return;
+        }
+        character.Background = Brushes.Lime;
+        this.LineNoLabels[character.Line].Foreground = Brushes.Green;
+        this.ColumnLabels[character.Column].Foreground = Brushes.Green;
+        Canvas.SetLeft(this.HighlightColumn, (character.Column + 1) * CellWidth);
+        Canvas.SetTop(this.HighlightLine, CellWidth + (character.Line * CellHeight));
+        if (!this.Canvas.Children.Contains(this.HighlightColumn))
+        {
+            this.Canvas.Children.Insert(0, this.HighlightColumn);
+        }
+        if (!this.Canvas.Children.Contains(this.HighlightLine))
+        {
+            this.Canvas.Children.Insert(0, this.HighlightLine);
+        }
     }
 
     private static void Redraw(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
@@ -289,4 +345,8 @@ public class CharsView : UserControl
     private List<Line> ColumnLines { get; } = new();
 
     private List<Character> Characters { get; } = new();
+    private Character? HighlightedCharacter { get; set; }
+
+    private Rectangle HighlightLine { get; }
+    private Rectangle HighlightColumn { get; }
 }
