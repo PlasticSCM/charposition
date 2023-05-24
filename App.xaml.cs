@@ -1,5 +1,4 @@
 ﻿using Autofac;
-using Autofac.Builder;
 using charposition.Services;
 using System.Windows;
 
