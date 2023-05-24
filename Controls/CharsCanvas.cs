@@ -7,6 +7,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -14,6 +15,8 @@ namespace charposition.Controls;
 
 public class CharsCanvas : UserControl
 {
+    public event EventHandler<CharChangedArgs>? HoveredCharChanged;
+
     public int LineCount
     {
         get => (int)GetValue(LineCountProperty);
@@ -80,12 +83,30 @@ public class CharsCanvas : UserControl
     protected override Size MeasureOverride(Size constraint) =>
         new(this.ColumnLines.Max(l => l.X1), this.RowLines.Max(r => r.Y1));
 
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        var mouseOverChar = this.Characters.Find(c => c.IsMouseOver);
+        this.HighlightCharacter(mouseOverChar);
+    }
+
     internal void HighlightCharacter(Character? character)
     {
+        if (this.HighlightedCharacter == character)
+        {
+            return;
+        }
+
+        this.HoveredCharChanged?.Invoke(this, new CharChangedArgs
+        {
+            Column = character?.Column,
+            Line = character?.Line
+        });
+
         if (this.HighlightedCharacter != null)
         {
             this.HighlightedCharacter.Background = Brushes.Transparent;
         }
+
         this.HighlightedCharacter = character;
         if (character == null)
         {
@@ -93,9 +114,10 @@ public class CharsCanvas : UserControl
             this.Canvas.Children.Remove(this.HighlightLine);
             return;
         }
+
         character.Background = Brushes.Lime;
-        Canvas.SetLeft(this.HighlightColumn, (character.Column + 1) * CharsView.CellWidth);
-        Canvas.SetTop(this.HighlightLine, CharsView.CellWidth + (character.Line * CharsView.CellHeight));
+        Canvas.SetLeft(this.HighlightColumn, character.Column * CharsView.CellWidth);
+        Canvas.SetTop(this.HighlightLine, character.Line * CharsView.CellHeight);
         if (!this.Canvas.Children.Contains(this.HighlightColumn))
         {
             this.Canvas.Children.Insert(0, this.HighlightColumn);
@@ -250,4 +272,10 @@ public class CharsCanvas : UserControl
 
     private Rectangle HighlightLine { get; }
     private Rectangle HighlightColumn { get; }
+
+    public class CharChangedArgs : EventArgs
+    {
+        public int? Line { get; set; }
+        public int? Column { get; set; }
+    }
 }

@@ -18,7 +18,7 @@ public class CharsView : UserControl
 
     internal static readonly Brush LineBrush = Brushes.Gray;
     internal static readonly Brush LabelBrush = Brushes.Gray;
-    internal static readonly Brush HighlightBrush = Brushes.PaleGreen;
+    internal static readonly Brush HighlightBrush = new SolidColorBrush(Color.FromRgb(230, 255, 236));
 
     public int LineCount
     {
@@ -111,6 +111,7 @@ public class CharsView : UserControl
         this.Canvas.Children.Add(this.ScrollViewer);
 
         this.CharsCanvas = new();
+        this.CharsCanvas.HoveredCharChanged += (s, e) => HighlightCharacter(e.Line, e.Column);
         this.ScrollViewer.Content = this.CharsCanvas;
 
         CharsCanvas.SetBinding(CharsCanvas.LineCharsProperty,
@@ -120,47 +121,46 @@ public class CharsView : UserControl
         CharsCanvas.SetBinding(CharsCanvas.LineCountProperty,
             new Binding { Path = new PropertyPath(LineCountProperty), Source = this });
 
-        //this.HighlightColumn = new()
-        //{
-        //    Width = CellWidth,
-        //    Fill = HighlightBrush
-        //};
-        //this.HighlightLine = new()
-        //{
-        //    Height = CellHeight,
-        //    Fill = HighlightBrush
-        //};
-
-        //this.HighlightLine.SetBinding(WidthProperty,
-        //        new Binding { Path = new PropertyPath(ActualWidthProperty), Source = this });
-        //this.HighlightColumn.SetBinding(HeightProperty,
-        //    new Binding { Path = new PropertyPath(ActualHeightProperty), Source = this });
+        this.HighlightColumn = new()
+        {
+            Width = CellWidth,
+            Height = CellWidth,
+            Fill = HighlightBrush,
+            Visibility = Visibility.Collapsed
+        };
+        this.Canvas.Children.Add(this.HighlightColumn);
+        this.HighlightLine = new()
+        {
+            Width = CellWidth,
+            Height = CellHeight,
+            Fill = HighlightBrush,
+            Visibility = Visibility.Collapsed
+        };
+        this.Canvas.Children.Add(this.HighlightLine);
     }
 
-    //protected override void OnMouseMove(MouseEventArgs e)
-    //{
-    //    var mouseOverChar = this.Characters.Find(c => c.IsMouseOver);
-    //    this.HighlightCharacter(mouseOverChar);
-    //}
+    private void HighlightCharacter(int? line, int? column)
+    {
+        if (line.HasValue)
+        {
+            this.HighlightLine.Visibility = Visibility.Visible;
+            Canvas.SetTop(this.HighlightLine, CellWidth + (line.Value * CellHeight) - this.ScrollViewer.VerticalOffset);
+        }
+        else
+        {
+            this.HighlightLine.Visibility = Visibility.Collapsed;
+        }
 
-    //private void HighlightCharacter(Character? character)
-    //{
-    //    if (this.HighlightedCharacter != null)
-    //    {
-    //        this.HighlightedCharacter.Background = Brushes.Transparent;
-    //        this.LineNoLabels[this.HighlightedCharacter.Line].Foreground = LabelBrush;
-    //        this.ColumnLabels[this.HighlightedCharacter.Column].Foreground = LabelBrush;
-    //    }
-    //    this.HighlightedCharacter = character;
-    //    if (character == null)
-    //    {
-    //        this.Canvas.Children.Remove(this.HighlightColumn);
-    //        this.Canvas.Children.Remove(this.HighlightLine);
-    //        return;
-    //    }
-    //    this.LineNoLabels[character.Line].Foreground = Brushes.Green;
-    //    this.ColumnLabels[character.Column].Foreground = Brushes.Green;
-    //}
+        if (column.HasValue)
+        {
+            this.HighlightColumn.Visibility = Visibility.Visible;
+            Canvas.SetLeft(this.HighlightColumn, ((column.Value + 1) * CellWidth) - this.ScrollViewer.HorizontalOffset);
+        }
+        else
+        {
+            this.HighlightColumn.Visibility = Visibility.Collapsed;
+        }
+    }
 
     private static void Redraw(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((CharsView)d).Draw();
@@ -251,4 +251,7 @@ public class CharsView : UserControl
 
     private ScrollViewer ScrollViewer { get; }
     private CharsCanvas CharsCanvas { get; }
+
+    private Rectangle HighlightLine { get; }
+    private Rectangle HighlightColumn { get; }
 }
