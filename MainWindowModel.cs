@@ -43,6 +43,14 @@ public class MainWindowModel : DependencyObject
     public static readonly DependencyProperty ErrorMessageProperty =
         DependencyProperty.Register("ErrorMessage", typeof(string), typeof(MainWindowModel), new PropertyMetadata(null));
 
+    public LocationSpan? SelectedSpan
+    {
+        get => (LocationSpan?)GetValue(SelectedSpanProperty);
+        set => SetValue(SelectedSpanProperty, value);
+    }
+    public static readonly DependencyProperty SelectedSpanProperty =
+        DependencyProperty.Register("SelectedSpan", typeof(LocationSpan), typeof(MainWindowModel), new PropertyMetadata(null));
+
     public ObservableCollection<FileNode> Semantics { get; } = new();
 
     public ObservableCollection<char[]> LineChars { get; } = new();

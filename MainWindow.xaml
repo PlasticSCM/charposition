@@ -39,7 +39,8 @@
                             ClipToBounds="True"
                             LineChars="{Binding LineChars}"
                             LineCount="{Binding LineCount}"
-                            MaxLineLength="{Binding MaximumLineLength}" />
+                            MaxLineLength="{Binding MaximumLineLength}"
+                            SelectedSpan="{Binding SelectedSpan}" />
 
         <GridSplitter Grid.Column="1"
                       Width="2"
@@ -48,7 +49,10 @@
                       Background="Gray"
                       Visibility="{Binding SemanticFile, Converter={StaticResource notNullVisibleConverter}}" />
 
-        <TreeView Grid.Column="2" ItemsSource="{Binding Semantics}" Visibility="{Binding SemanticFile, Converter={StaticResource notNullVisibleConverter}}">
+        <TreeView Grid.Column="2"
+                  ItemsSource="{Binding Semantics}"
+                  SelectedItemChanged="TreeView_SelectedItemChanged"
+                  Visibility="{Binding SemanticFile, Converter={StaticResource notNullVisibleConverter}}">
             <TreeView.Resources>
                 <HierarchicalDataTemplate DataType="{x:Type parser:FileNode}" ItemsSource="{Binding Children}">
                     <Border Background="Transparent">

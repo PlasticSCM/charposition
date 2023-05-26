@@ -1,4 +1,5 @@
-﻿using System;
+﻿using charposition.ParserModel;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -48,6 +49,14 @@ public class CharsCanvas : UserControl
             coll.CollectionChanged += (object? sender, NotifyCollectionChangedEventArgs e) => ctrl.Draw();
         }
     }
+
+    public LocationSpan? SelectedSpan
+    {
+        get => (LocationSpan?)GetValue(SelectedSpanProperty);
+        set => SetValue(SelectedSpanProperty, value);
+    }
+    public static readonly DependencyProperty SelectedSpanProperty =
+        DependencyProperty.Register("SelectedSpan", typeof(LocationSpan), typeof(CharsCanvas), new PropertyMetadata(null, Redraw));
 
     public CharsCanvas()
     {
@@ -104,7 +113,7 @@ public class CharsCanvas : UserControl
 
         if (this.HighlightedCharacter != null)
         {
-            this.HighlightedCharacter.Background = Brushes.Transparent;
+            this.UpdateCharacterSelection(this.HighlightedCharacter);
         }
 
         this.HighlightedCharacter = character;
@@ -163,6 +172,7 @@ public class CharsCanvas : UserControl
                 character.CharCode = chars[i];
                 character.Line = lineNo;
                 character.Column = i;
+                this.UpdateCharacterSelection(character);
                 Canvas.SetTop(character, lineNo * CharsView.CellHeight);
                 Canvas.SetLeft(character, i * CharsView.CellWidth);
 
@@ -176,6 +186,29 @@ public class CharsCanvas : UserControl
             this.Canvas.Children.Remove(this.Characters[^1]);
             this.Characters.RemoveAt(this.Characters.Count - 1);
         }
+    }
+
+    private void UpdateCharacterSelection(Character character)
+    {
+        bool isSelected = false;
+        if (this.SelectedSpan?.Start != null && this.SelectedSpan?.End != null)
+        {
+            int row = character.Line + 1;
+            if (row == this.SelectedSpan.Start[0])
+            {
+                isSelected = character.Column + 1 >= this.SelectedSpan.Start[1];
+            }
+            else if (row > this.SelectedSpan.Start[0] && character.Line < this.SelectedSpan.End[0])
+            {
+                isSelected = true;
+            }
+            else if (row == this.SelectedSpan.End[0])
+            {
+                isSelected = character.Column + 1 <= this.SelectedSpan.End[1];
+            }
+        }
+
+        character.Background = isSelected ? CharsView.SelectionBrush : Brushes.Transparent;
     }
 
     private void UpdateColumnLines()

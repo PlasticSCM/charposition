@@ -1,4 +1,5 @@
 ﻿using charposition.Converters;
+using charposition.ParserModel;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,6 +20,7 @@ public class CharsView : UserControl
     internal static readonly Brush LineBrush = Brushes.Gray;
     internal static readonly Brush LabelBrush = Brushes.Gray;
     internal static readonly Brush HighlightBrush = new SolidColorBrush(Color.FromRgb(230, 255, 236));
+    internal static readonly Brush SelectionBrush = new SolidColorBrush(Color.FromArgb(100, 192, 232, 250));
 
     public int LineCount
     {
@@ -51,6 +53,14 @@ public class CharsView : UserControl
             coll.CollectionChanged += (object? sender, NotifyCollectionChangedEventArgs e) => ctrl.Draw();
         }
     }
+
+    public LocationSpan? SelectedSpan
+    {
+        get => (LocationSpan?)GetValue(SelectedSpanProperty);
+        set => SetValue(SelectedSpanProperty, value);
+    }
+    public static readonly DependencyProperty SelectedSpanProperty =
+        DependencyProperty.Register("SelectedSpan", typeof(LocationSpan), typeof(CharsView), new PropertyMetadata(null));
 
     public CharsView()
     {
@@ -120,6 +130,8 @@ public class CharsView : UserControl
             new Binding { Path = new PropertyPath(MaxLineLengthProperty), Source = this });
         CharsCanvas.SetBinding(CharsCanvas.LineCountProperty,
             new Binding { Path = new PropertyPath(LineCountProperty), Source = this });
+        CharsCanvas.SetBinding(CharsCanvas.SelectedSpanProperty,
+            new Binding { Path = new PropertyPath(SelectedSpanProperty), Source = this });
 
         this.HighlightColumn = new()
         {
