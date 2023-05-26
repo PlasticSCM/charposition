@@ -20,6 +20,7 @@ public partial class App : Application
         ContainerBuilder services = new();
         services.RegisterType<FileReader>().As<IFileReader>();
         services.RegisterType<LineSplitter>().As<ILineSplitter>();
+        services.RegisterType<MainWindowModel>().SingleInstance();
         services.RegisterType<MainWindow>();
 
         var container = services.Build();
@@ -33,9 +34,11 @@ public partial class App : Application
             semantics = e.Args.Length == 1 ? string.Empty : fileReader.ReadAllText(e.Args[1]);
         }
 
+        var model = container.Resolve<MainWindowModel>();
+        model.LoadData(text, semantics);
+
         var window = container.Resolve<MainWindow>();
         window.Title = title;
-        window.SetText(text);
         window.Show();
     }
 }

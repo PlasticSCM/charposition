@@ -11,8 +11,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Autofac" Version="7.0.1" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ParserModel\" />
+    <PackageReference Include="YamlDotNet" Version="13.1.0" />
   </ItemGroup>
 </Project>
