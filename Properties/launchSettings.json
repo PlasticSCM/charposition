@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "charposition": {
+      "commandName": "Project"
+    },
+    "Profile 1": {
+      "commandName": "Project",
+      "commandLineArgs": "E:\\WEEK70\\PRGS\\aadd.prg C:\\Users\\buchfink\\AppData\\Local\\Temp\\tmpD.yaml"
+    }
+  }
+}
