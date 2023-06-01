@@ -1,5 +1,7 @@
 ﻿using Autofac;
 using charposition.Services;
+using System;
+using System.Data;
 using System.Windows;
 
 namespace charposition;
@@ -15,6 +17,7 @@ public partial class App : Application
         string text = DummyData.Text;
         string title = DummyData.Title;
         string semantics = DummyData.Semantics;
+        string error = string.Empty;
 
         // Services
         ContainerBuilder services = new();
@@ -25,17 +28,32 @@ public partial class App : Application
 
         var container = services.Build();
 
+        var model = container.Resolve<MainWindowModel>();
+
         // read args
         var fileReader = container.Resolve<IFileReader>();
         if (e.Args.Length > 0)
         {
-            text = fileReader.ReadAllText(e.Args[0]);
-            title = e.Args[0];
-            semantics = e.Args.Length == 1 ? string.Empty : fileReader.ReadAllText(e.Args[1]);
+            text = string.Empty;
+            semantics = string.Empty;
+            try
+            {
+                title = e.Args[0];
+                text = fileReader.ReadAllText(e.Args[0]);
+                semantics = e.Args.Length == 1 ? string.Empty : fileReader.ReadAllText(e.Args[1]);
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+            }
         }
 
-        var model = container.Resolve<MainWindowModel>();
         model.LoadData(text, semantics);
+
+        if (error != string.Empty)
+        {
+            model.ErrorMessage = error;
+        }
 
         var window = container.Resolve<MainWindow>();
         window.Title = title;
