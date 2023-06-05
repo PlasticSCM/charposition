@@ -53,7 +53,14 @@ public class MainWindowModel : DependencyObject
 
     public ObservableCollection<FileNode> Semantics { get; } = new();
 
-    public ObservableCollection<char[]> LineChars { get; } = new();
+    public ObservableCollection<char[]> LineChars
+    {
+        get => (ObservableCollection<char[]>)GetValue(LineCharsProperty);
+        set => SetValue(LineCharsProperty, value);
+    }
+    public static readonly DependencyProperty LineCharsProperty =
+        DependencyProperty.Register("LineChars", typeof(ObservableCollection<char[]>), typeof(MainWindowModel),
+            new PropertyMetadata(new ObservableCollection<char[]>()));
 
     private readonly ILineSplitter lineSplitter;
 
@@ -87,17 +94,28 @@ public class MainWindowModel : DependencyObject
         catch (Exception ex)
         {
             this.ErrorMessage = ex.Message;
+            if (ex.InnerException != null)
+            {
+                this.ErrorMessage += $": {ex.InnerException.Message}";
+            }
         }
     }
 
     private void LoadText(string text)
     {
+        int lineCount = 0;
+        int maxLineLen = 0;
+        System.Collections.Generic.List<char[]> lines = new();
         foreach (char[] line in lineSplitter.SplitLines(text))
         {
-            this.LineCount++;
-            this.MaximumLineLength = Math.Max(this.MaximumLineLength, line.Length);
-            this.LineChars.Add(line);
+            lineCount++;
+            maxLineLen = Math.Max(maxLineLen, line.Length);
+            lines.Add(line);
         }
+
+        this.LineCount = lineCount;
+        this.MaximumLineLength = maxLineLen;
+        this.LineChars = new ObservableCollection<char[]>(lines);
     }
 
     private void Clear()
