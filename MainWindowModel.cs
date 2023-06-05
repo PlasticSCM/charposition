@@ -1,9 +1,11 @@
 ﻿using charposition.ParserModel;
 using charposition.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -53,14 +55,14 @@ public class MainWindowModel : DependencyObject
 
     public ObservableCollection<FileNode> Semantics { get; } = new();
 
-    public ObservableCollection<char[]> LineChars
+    public ObservableCollection<Dictionary<int, char>> LineChars
     {
-        get => (ObservableCollection<char[]>)GetValue(LineCharsProperty);
+        get => (ObservableCollection<Dictionary<int, char>>)GetValue(LineCharsProperty);
         set => SetValue(LineCharsProperty, value);
     }
     public static readonly DependencyProperty LineCharsProperty =
-        DependencyProperty.Register("LineChars", typeof(ObservableCollection<char[]>), typeof(MainWindowModel),
-            new PropertyMetadata(new ObservableCollection<char[]>()));
+        DependencyProperty.Register("LineChars", typeof(ObservableCollection<Dictionary<int, char>>), typeof(MainWindowModel),
+            new PropertyMetadata(new ObservableCollection<Dictionary<int, char>>()));
 
     private readonly ILineSplitter lineSplitter;
 
@@ -105,17 +107,24 @@ public class MainWindowModel : DependencyObject
     {
         int lineCount = 0;
         int maxLineLen = 0;
-        System.Collections.Generic.List<char[]> lines = new();
-        foreach (char[] line in lineSplitter.SplitLines(text))
+        int charIndex = 0;
+        List<Dictionary<int, char>> lines = new();
+        foreach (char[] lineChars in lineSplitter.SplitLines(text))
         {
             lineCount++;
-            maxLineLen = Math.Max(maxLineLen, line.Length);
+            maxLineLen = Math.Max(maxLineLen, lineChars.Length);
+
+            Dictionary<int, char> line = new();
+            foreach(char c in lineChars)
+            {
+                line[charIndex++] = c;
+            }
             lines.Add(line);
         }
 
         this.LineCount = lineCount;
         this.MaximumLineLength = maxLineLen;
-        this.LineChars = new ObservableCollection<char[]>(lines);
+        this.LineChars = new ObservableCollection<Dictionary<int, char>>(lines);
     }
 
     private void Clear()

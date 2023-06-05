@@ -33,17 +33,17 @@ public class CharsCanvas : UserControl
     public static readonly DependencyProperty MaxLineLengthProperty =
         DependencyProperty.Register("MaxLineLength", typeof(int), typeof(CharsCanvas), new PropertyMetadata(1, Redraw));
 
-    public IEnumerable<char[]> LineChars
+    public IEnumerable<Dictionary<int, char>> LineChars
     {
-        get => (IEnumerable<char[]>)GetValue(LineCharsProperty);
+        get => (IEnumerable<Dictionary<int, char>>)GetValue(LineCharsProperty);
         set => SetValue(LineCharsProperty, value);
     }
     public static readonly DependencyProperty LineCharsProperty =
-            DependencyProperty.Register("LineChars", typeof(IEnumerable<char[]>), typeof(CharsCanvas), new PropertyMetadata(null, OnLineCharsChanged));
+            DependencyProperty.Register("LineChars", typeof(IEnumerable<Dictionary<int, char>>), typeof(CharsCanvas), new PropertyMetadata(null, OnLineCharsChanged));
 
     static void OnLineCharsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (e.NewValue is ObservableCollection<char[]> coll && d is CharsCanvas ctrl)
+        if (e.NewValue is ObservableCollection<Dictionary<int, char>> coll && d is CharsCanvas ctrl)
         {
             coll.CollectionChanged += (object? sender, NotifyCollectionChangedEventArgs e) => ctrl.Draw();
         }
@@ -163,11 +163,11 @@ public class CharsCanvas : UserControl
     {
         int charIndex = 0;
         int rowIndex = 0;
-        int skipedChars = this.LineChars.Take(this.startRow).Select(l => l.Length).Sum();
-        foreach (char[] lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
+        foreach (var lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
         {
-            var endCol = Math.Min(lineChars.Length, this.startCol + this.visibleColumns);
-            for (int i = this.startCol; i < endCol; i++)
+            var endCol = Math.Min(lineChars.Count, this.startCol + this.visibleColumns);
+            var col = startCol;
+            foreach(var c in lineChars.Skip(this.startCol).Take(endCol))
             {
                 if (this.Characters.Count <= charIndex)
                 {
@@ -182,15 +182,16 @@ public class CharsCanvas : UserControl
                 }
 
                 var character = this.Characters[charIndex];
-                character.CharIndex = charIndex + skipedChars;
-                character.CharCode = lineChars[i];
+                character.CharIndex = c.Key;
+                character.CharCode = c.Value;
                 character.Line = rowIndex + this.startRow;
-                character.Column = i;
+                character.Column = col;
                 this.UpdateCharacterSelection(character);
                 Canvas.SetTop(character, character.Line * CharsView.CellHeight);
-                Canvas.SetLeft(character, i * CharsView.CellWidth);
+                Canvas.SetLeft(character, col * CharsView.CellWidth);
 
                 charIndex++;
+                col++;
             }
             rowIndex++;
         }
@@ -233,9 +234,9 @@ public class CharsCanvas : UserControl
     {
         int rowIndex = 0;
         int colIndex = 0;
-        foreach (char[] lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
+        foreach (var lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
         {
-            var endCol = Math.Min(lineChars.Length, this.startCol + this.visibleColumns);
+            var endCol = Math.Min(lineChars.Count, this.startCol + this.visibleColumns);
             for (int i = this.startCol; i <= endCol; i++)
             {
                 if (this.ColumnLines.Count <= colIndex)
@@ -299,18 +300,18 @@ public class CharsCanvas : UserControl
         // Adjust line lengths
         int lastLineLength = 0;
         int rowIndex = 0;
-        foreach (char[] lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
+        foreach (var lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
         {
             if (lastLineLength == 0)
             {
                 rowIndex++;
-                lastLineLength = lineChars.Length;
+                lastLineLength = lineChars.Count;
                 continue;
             }
 
-            int length = Math.Max(lastLineLength, lineChars.Length);
+            int length = Math.Max(lastLineLength, lineChars.Count);
             UpdateRowLineLength(rowIndex, this.startRow + rowIndex, length);
-            lastLineLength = lineChars.Length;
+            lastLineLength = lineChars.Count;
             rowIndex++;
         }
 
