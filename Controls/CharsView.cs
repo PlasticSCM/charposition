@@ -120,7 +120,7 @@ public class CharsView : UserControl
             });
         this.Canvas.Children.Add(this.ScrollViewer);
 
-        this.CharsCanvas = new();
+        this.CharsCanvas = new(this.ScrollViewer);
         this.CharsCanvas.HoveredCharChanged += (s, e) => HighlightCharacter(e.Line, e.Column);
         this.ScrollViewer.Content = this.CharsCanvas;
 

@@ -1,6 +1,5 @@
 ﻿using charposition.ParserModel;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -34,13 +33,13 @@ public class CharsCanvas : UserControl
     public static readonly DependencyProperty MaxLineLengthProperty =
         DependencyProperty.Register("MaxLineLength", typeof(int), typeof(CharsCanvas), new PropertyMetadata(1, Redraw));
 
-    public IEnumerable LineChars
+    public IEnumerable<char[]> LineChars
     {
-        get => (IEnumerable)GetValue(LineCharsProperty);
+        get => (IEnumerable<char[]>)GetValue(LineCharsProperty);
         set => SetValue(LineCharsProperty, value);
     }
     public static readonly DependencyProperty LineCharsProperty =
-            DependencyProperty.Register("LineChars", typeof(IEnumerable), typeof(CharsCanvas), new PropertyMetadata(null, OnLineCharsChanged));
+            DependencyProperty.Register("LineChars", typeof(IEnumerable<char[]>), typeof(CharsCanvas), new PropertyMetadata(null, OnLineCharsChanged));
 
     static void OnLineCharsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -58,7 +57,9 @@ public class CharsCanvas : UserControl
     public static readonly DependencyProperty SelectedSpanProperty =
         DependencyProperty.Register("SelectedSpan", typeof(LocationSpan), typeof(CharsCanvas), new PropertyMetadata(null, Redraw));
 
-    public CharsCanvas()
+    private readonly ScrollViewer scrollViewer;
+
+    public CharsCanvas(ScrollViewer scrollViewer)
     {
         this.Background = Brushes.Transparent;
 
@@ -87,10 +88,13 @@ public class CharsCanvas : UserControl
                 new Binding { Path = new PropertyPath(ActualWidthProperty), Source = this });
         this.HighlightColumn.SetBinding(HeightProperty,
             new Binding { Path = new PropertyPath(ActualHeightProperty), Source = this });
+
+        this.scrollViewer = scrollViewer;
+        this.scrollViewer.ScrollChanged += (s, e) => this.Draw();
     }
 
     protected override Size MeasureOverride(Size constraint) =>
-        new(this.ColumnLines.Max(l => l.X1), this.RowLines.Max(r => r.Y1));
+        new(this.MaxLineLength * CharsView.CellWidth, this.LineCount * CharsView.CellHeight);
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
@@ -142,6 +146,14 @@ public class CharsCanvas : UserControl
 
     private void Draw()
     {
+        // Calculate visible columns
+        this.visibleLines = (int)Math.Ceiling(this.scrollViewer.ViewportHeight / CharsView.CellHeight) + 2;
+        this.visibleColumns = (int)Math.Ceiling(this.scrollViewer.ViewportWidth / CharsView.CellWidth) + 2;
+
+        // Update columns
+        this.startRow = (int)Math.Max(0, Math.Floor(this.scrollViewer.VerticalOffset / CharsView.CellHeight) - 1);
+        this.startCol = (int)Math.Max(0, Math.Floor(this.scrollViewer.HorizontalOffset / CharsView.CellWidth) - 1);
+
         this.UpdateRowLines();
         this.UpdateColumnLines();
         this.UpdateCharacters();
@@ -149,13 +161,15 @@ public class CharsCanvas : UserControl
 
     private void UpdateCharacters()
     {
-        int totalChars = 0;
-        int lineNo = 0;
-        foreach (char[] chars in this.LineChars)
+        int charIndex = 0;
+        int rowIndex = 0;
+        int skipedChars = this.LineChars.Take(this.startRow).Select(l => l.Length).Sum();
+        foreach (char[] lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
         {
-            for (int i = 0; i < chars.Length; i++)
+            var endCol = Math.Min(lineChars.Length, this.startCol + this.visibleColumns);
+            for (int i = this.startCol; i < endCol; i++)
             {
-                if (this.Characters.Count <= totalChars)
+                if (this.Characters.Count <= charIndex)
                 {
                     var @char = new Character()
                     {
@@ -167,24 +181,28 @@ public class CharsCanvas : UserControl
                     this.Characters.Add(@char);
                 }
 
-                var character = this.Characters[totalChars];
-                character.CharIndex = totalChars;
-                character.CharCode = chars[i];
-                character.Line = lineNo;
+                var character = this.Characters[charIndex];
+                character.CharIndex = charIndex + skipedChars;
+                character.CharCode = lineChars[i];
+                character.Line = rowIndex + this.startRow;
                 character.Column = i;
                 this.UpdateCharacterSelection(character);
-                Canvas.SetTop(character, lineNo * CharsView.CellHeight);
+                Canvas.SetTop(character, character.Line * CharsView.CellHeight);
                 Canvas.SetLeft(character, i * CharsView.CellWidth);
 
-                totalChars++;
+                charIndex++;
             }
-            lineNo++;
+            rowIndex++;
         }
 
-        while (this.Characters.Count > totalChars)
+        // Cleanup unneeded chars
+        if (this.Characters.Count > charIndex + 100)
         {
-            this.Canvas.Children.Remove(this.Characters[^1]);
-            this.Characters.RemoveAt(this.Characters.Count - 1);
+            while (this.Characters.Count > charIndex)
+            {
+                this.Canvas.Children.Remove(this.Characters[^1]);
+                this.Characters.RemoveAt(this.Characters.Count - 1);
+            }
         }
     }
 
@@ -213,13 +231,14 @@ public class CharsCanvas : UserControl
 
     private void UpdateColumnLines()
     {
-        int row = 0;
-        int index = 0;
-        foreach (char[] lineChars in this.LineChars)
+        int rowIndex = 0;
+        int colIndex = 0;
+        foreach (char[] lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
         {
-            for (int i = 1; i <= lineChars.Length; i++)
+            var endCol = Math.Min(lineChars.Length, this.startCol + this.visibleColumns);
+            for (int i = this.startCol; i <= endCol; i++)
             {
-                if (this.ColumnLines.Count <= index)
+                if (this.ColumnLines.Count <= colIndex)
                 {
                     var line = new Line
                     {
@@ -229,31 +248,43 @@ public class CharsCanvas : UserControl
                     this.Canvas.Children.Add(line);
                     this.ColumnLines.Add(line);
                 }
-                var columnLine = this.ColumnLines[index++];
+                var columnLine = this.ColumnLines[colIndex++];
 
                 columnLine.X1 = columnLine.X2 = (i * CharsView.CellWidth);
+
+                int row = this.startRow + rowIndex;
                 columnLine.Y1 = (row * CharsView.CellHeight);
                 columnLine.Y2 = ((row + 1) * CharsView.CellHeight);
             }
 
-            row++;
+            rowIndex++;
         }
 
-        while (this.ColumnLines.Count > index)
+        // Cleanup unneeded columns
+        if (this.ColumnLines.Count > colIndex + 100)
         {
-            this.Canvas.Children.Remove(this.ColumnLines[^1]);
-            this.ColumnLines.RemoveAt(this.ColumnLines.Count - 1);
+            while (this.ColumnLines.Count > colIndex)
+            {
+                this.Canvas.Children.Remove(this.ColumnLines[^1]);
+                this.ColumnLines.RemoveAt(this.ColumnLines.Count - 1);
+            }
         }
     }
 
     private void UpdateRowLines()
     {
-        while (this.RowLines.Count > this.LineCount)
+        // Cleanup unneeded lines
+        if (this.RowLines.Count > this.visibleLines + 25)
         {
-            this.Canvas.Children.Remove(this.RowLines[^1]);
-            this.RowLines.RemoveAt(this.RowLines.Count - 1);
+            while (this.RowLines.Count > this.visibleLines)
+            {
+                this.Canvas.Children.Remove(this.RowLines[^1]);
+                this.RowLines.RemoveAt(this.RowLines.Count - 1);
+            }
         }
-        while (this.RowLines.Count < this.LineCount)
+
+        // Create new lines
+        while (this.RowLines.Count < this.visibleLines)
         {
             var line = new Line
             {
@@ -264,34 +295,38 @@ public class CharsCanvas : UserControl
             this.Canvas.Children.Add(line);
             this.RowLines.Add(line);
         }
-        int row = 0;
+
+        // Adjust line lengths
         int lastLineLength = 0;
-        foreach (char[] lineChars in this.LineChars)
+        int rowIndex = 0;
+        foreach (char[] lineChars in this.LineChars.Skip(this.startRow).Take(this.visibleLines))
         {
-            if (row == 0)
+            if (lastLineLength == 0)
             {
-                row++;
+                rowIndex++;
                 lastLineLength = lineChars.Length;
                 continue;
             }
+
             int length = Math.Max(lastLineLength, lineChars.Length);
-            UpdateRowLineLength(row, length);
+            UpdateRowLineLength(rowIndex, this.startRow + rowIndex, length);
             lastLineLength = lineChars.Length;
-            row++;
+            rowIndex++;
         }
-        UpdateRowLineLength(row, lastLineLength);
+
+        UpdateRowLineLength(rowIndex, this.startRow + rowIndex, lastLineLength);
     }
 
-    private void UpdateRowLineLength(int row, int length)
+    private void UpdateRowLineLength(int rowIndex, int lineNo, int length)
     {
-        if (row < 1)
+        if (rowIndex < 1 || rowIndex >= this.RowLines.Count)
         {
             return;
         }
 
-        var line = this.RowLines[row - 1];
-        line.Y1 = row * CharsView.CellHeight;
-        line.Y2 = row * CharsView.CellHeight;
+        var line = this.RowLines[rowIndex - 1];
+        line.Y1 = lineNo * CharsView.CellHeight;
+        line.Y2 = lineNo * CharsView.CellHeight;
         line.X2 = length * CharsView.CellWidth;
     }
 
@@ -305,6 +340,11 @@ public class CharsCanvas : UserControl
 
     private Rectangle HighlightLine { get; }
     private Rectangle HighlightColumn { get; }
+
+    private int visibleLines;
+    private int visibleColumns;
+    private int startRow;
+    private int startCol;
 
     public class CharChangedArgs : EventArgs
     {
